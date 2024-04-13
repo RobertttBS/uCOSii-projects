@@ -179,6 +179,9 @@ INT8U  OSTaskCreate (void (*task)(void *pd), void *pdata, OS_STK *ptos, INT8U pr
         if (err == OS_NO_ERR) {
             OS_ENTER_CRITICAL();
             OSTaskCtr++;                                        /* Increment the #tasks counter        */
+            // Update the task period and computation time
+            OSTCBList->compTime = ((int *) pdata)[0];
+            OSTCBList->period = ((int *) pdata)[1];
             OS_EXIT_CRITICAL();
             if (OSRunning == TRUE) {         /* Find highest priority task if multitasking has started */
                 OS_Sched();

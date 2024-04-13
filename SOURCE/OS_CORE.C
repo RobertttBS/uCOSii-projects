@@ -187,7 +187,12 @@ void  OSIntExit (void)
 #if OS_CRITICAL_METHOD == 3                                /* Allocate storage for CPU status register */
     OS_CPU_SR  cpu_sr;
 #endif
-    
+
+#ifdef  LAB2
+    OS_TCB    *ptcb;
+    INT32U     minDeadline = 2000;
+    INT32U     deadline;
+#endif
     
     if (OSRunning == TRUE) {
         OS_ENTER_CRITICAL();
@@ -196,7 +201,16 @@ void  OSIntExit (void)
         }
         if ((OSIntNesting == 0) && (OSLockNesting == 0)) { /* Reschedule only if all ISRs complete ... */
 #ifdef  LAB2
-
+        ptcb = OSTCBList;
+        OSPrioHighRdy = OS_IDLE_PRIO;
+        while (ptcb->OSTCBPrio == 0 || ptcb->OSTCBPrio == 1 || ptcb->OSTCBPrio == 2 || ptcb->OSTCBPrio == 3) {
+            deadline = ptcb->start + ptcb->period;
+            if (ptcb->OSTCBStat == OS_STAT_RDY && !ptcb->OSTCBDly && deadline < minDeadline){
+                minDeadline = deadline;
+                OSPrioHighRdy = ptcb->OSTCBPrio;
+            }
+            ptcb = ptcb->OSTCBNext;
+        }
 #else
             OSIntExitY    = OSUnMapTbl[OSRdyGrp];          /* ... and not locked.                      */
             OSPrioHighRdy = (INT8U)((OSIntExitY << 3) + OSUnMapTbl[OSRdyTbl[OSIntExitY]]);
@@ -324,9 +338,13 @@ void  OSStart (void)
 
 
     if (OSRunning == FALSE) {
-#ifdef  LAB2
-
-#else
+        if (RowCount < DISPLAY_HIGH) {
+            OutputBuffer[RowCount][0] = (INT16U) 13;
+            OutputBuffer[RowCount][1] = 5;
+            OutputBuffer[RowCount][2] = (INT16U) OSPrioCur;
+            OutputBuffer[RowCount][3] = (INT16U) OSPrioHighRdy;
+            RowCount++;
+        }
         y             = OSUnMapTbl[OSRdyGrp];        /* Find highest priority's task priority number   */
         x             = OSUnMapTbl[OSRdyTbl[y]];
         OSPrioHighRdy = (INT8U)((y << 3) + x);
@@ -334,7 +352,6 @@ void  OSStart (void)
         OSTCBHighRdy  = OSTCBPrioTbl[OSPrioHighRdy]; /* Point to highest priority task ready to run    */
         OSTCBCur      = OSTCBHighRdy;
         OSStartHighRdy();                            /* Execute target specific code to start task     */
-#endif
     }
 }
 /*$PAGE*/
@@ -909,13 +926,26 @@ void  OS_Sched (void)
 #endif    
     INT8U      y;
 
+#ifdef  LAB2
+    OS_TCB    *ptcb;
+    INT32U     minDeadline = 2000;
+    INT32U     deadline;
+#endif
+
 
     OS_ENTER_CRITICAL();
     if ((OSIntNesting == 0) && (OSLockNesting == 0)) { /* Sched. only if all ISRs done & not locked    */
 #ifdef  LAB2
-        /* The selection method of OSPrioHighRdy should be modified in Lab2 */
-        /* Iterate all the task in ready queue */
-        /* Choose the earliest deadline task */
+        ptcb = OSTCBList;
+        OSPrioHighRdy = OS_IDLE_PRIO;
+        while (ptcb->OSTCBPrio == 1 || ptcb->OSTCBPrio == 2 || ptcb->OSTCBPrio == 3) {
+            deadline = ptcb->start + ptcb->period;
+            if (ptcb->OSTCBStat == OS_STAT_RDY && !ptcb->OSTCBDly && deadline < minDeadline){
+                minDeadline = deadline;
+                OSPrioHighRdy = ptcb->OSTCBPrio;
+            }
+            ptcb = ptcb->OSTCBNext;
+        }
 #else
         y             = OSUnMapTbl[OSRdyGrp];          /* Get pointer to HPT ready to run              */
         OSPrioHighRdy = (INT8U)((y << 3) + OSUnMapTbl[OSRdyTbl[y]]);
