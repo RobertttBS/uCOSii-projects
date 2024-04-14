@@ -18,7 +18,7 @@
 #endif
 
 #define  LAB1
-// #define  LAB2
+#define  LAB2
 
 
 #ifdef  LAB1
@@ -203,7 +203,7 @@ void  OSIntExit (void)
 #ifdef  LAB2
         ptcb = OSTCBList;
         OSPrioHighRdy = OS_IDLE_PRIO;
-        while (ptcb->OSTCBPrio == 0 || ptcb->OSTCBPrio == 1 || ptcb->OSTCBPrio == 2 || ptcb->OSTCBPrio == 3) {
+        while (ptcb->OSTCBPrio == 1 || ptcb->OSTCBPrio == 2 || ptcb->OSTCBPrio == 3) {
             deadline = ptcb->start + ptcb->period;
             if (ptcb->OSTCBStat == OS_STAT_RDY && !ptcb->OSTCBDly && deadline < minDeadline){
                 minDeadline = deadline;
@@ -339,20 +339,22 @@ void  OSStart (void)
 
 
     if (OSRunning == FALSE) {
-        // if (RowCount < DISPLAY_HIGH) {
-        //     OutputBuffer[RowCount][0] = (INT16U) 13;
-        //     OutputBuffer[RowCount][1] = 5;
-        //     OutputBuffer[RowCount][2] = (INT16U) OSPrioCur;
-        //     OutputBuffer[RowCount][3] = (INT16U) OSPrioHighRdy;
-        //     RowCount++;
-        // }
-        printf("OSStart\n");
         y             = OSUnMapTbl[OSRdyGrp];        /* Find highest priority's task priority number   */
         x             = OSUnMapTbl[OSRdyTbl[y]];
         OSPrioHighRdy = (INT8U)((y << 3) + x);
         OSPrioCur     = OSPrioHighRdy;
         OSTCBHighRdy  = OSTCBPrioTbl[OSPrioHighRdy]; /* Point to highest priority task ready to run    */
         OSTCBCur      = OSTCBHighRdy;
+#ifdef  LAB1
+        if (RowCount < DISPLAY_HIGH) {
+            OutputBuffer[RowCount][0] = (INT16U) 0;
+            OutputBuffer[RowCount][1] = COMPLETE_EVENT;
+            OutputBuffer[RowCount][2] = (INT16U) 0;
+            OutputBuffer[RowCount][3] = (INT16U) OSPrioHighRdy;
+            RowCount++;
+            printf("OSStart\n");
+        }
+#endif
         OSStartHighRdy();                            /* Execute target specific code to start task     */
     }
 }

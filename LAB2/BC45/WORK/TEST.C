@@ -35,9 +35,10 @@ char          TaskData[N_TASKS];                      /* Parameters to pass to e
 OS_EVENT     *RandomSem;
 
 INT32U        GlobalStartTime;                                /* Global tasks start time               */
-unsigned int  TaskSet1[2][2] = {{1, 3}, {3, 6}};              /* Task set 1 */
-// unsigned int  TaskSet2[3][2] = {{1, 4}, {2, 5}, {2, 10}};      /* Task set 2 */
-unsigned int  TaskSet2[3][2] = {{1, 3}, {3, 6}, {4, 9}};      /* Task set 2 */
+unsigned int  TaskSet1[2][2] = {{1, 3}, {3, 5}};              /* Task set 1 */
+unsigned int  TaskSet2[3][2] = {{1, 4}, {2, 5}, {2, 10}};      /* Task set 2 (Lab 2) */
+// unsigned int  TaskSet1[2][2] = {{1, 3}, {3, 6}};              /* Task set 1 (Lab 1) */
+// unsigned int  TaskSet2[3][2] = {{1, 3}, {3, 6}, {4, 9}};      /* Task set 2 (Lab 1) */
 
 #define  DISPLAY_HIGH                   24
 #define  COMPLETE_EVENT                  1
@@ -54,12 +55,10 @@ extern unsigned int   RowCount;                               /* ISR use RowCoun
 *********************************************************************************************************
 */
 
-        void  Task(void *data);                       /* Function prototypes of tasks                  */
-        void  TaskStart(void *data);                  /* Function prototypes of Startup task           */
+        // void  Task(void *data);                       /* Function prototypes of tasks                  */
+        // void  TaskStart(void *data);                  /* Function prototypes of Startup task           */
 static  void  TaskStartCreateTasks(void);
-// static  void  TaskStartDispInit(void);
 static  void  TaskStartDisp(void);
-
         void  PeriodicTask(void *data);
 
 /*$PAGE*/
@@ -80,7 +79,8 @@ void  main (void)
 
     RandomSem   = OSSemCreate(1);                          /* Random number semaphore                  */
 
-    OSTaskCreate(TaskStart, (void *)0, &TaskStartStk[TASK_STK_SIZE - 1], 0);
+    // OSTaskCreate(TaskStart, (void *)0, &TaskStartStk[TASK_STK_SIZE - 1], 0);
+    TaskStartCreateTasks();
 
     OSStart();                                             /* Start multitasking                       */
 }
@@ -90,39 +90,39 @@ void  main (void)
 *                                              STARTUP TASK
 *********************************************************************************************************
 */
-void  TaskStart (void *pdata)
-{
-#if OS_CRITICAL_METHOD == 3                                /* Allocate storage for CPU status register */
-    OS_CPU_SR  cpu_sr;
-#endif
-    char       s[100];
-    INT16S     key;
+// void  TaskStart (void *pdata)
+// {
+// #if OS_CRITICAL_METHOD == 3                                /* Allocate storage for CPU status register */
+//     OS_CPU_SR  cpu_sr;
+// #endif
+//     char       s[100];
+//     INT16S     key;
 
 
-    pdata = pdata;                                         /* Prevent compiler warning                 */
+//     pdata = pdata;                                         /* Prevent compiler warning                 */
 
-    // TaskStartDispInit();                                   /* Initialize the display                   */
+//     // TaskStartDispInit();                                   /* Initialize the display                   */
 
-    OS_ENTER_CRITICAL();
-    PC_VectSet(0x08, OSTickISR);                           /* Install uC/OS-II's clock tick ISR        */
-    PC_SetTickRate(OS_TICKS_PER_SEC);                      /* Reprogram tick rate                      */
-    OS_EXIT_CRITICAL();
+//     OS_ENTER_CRITICAL();
+//     PC_VectSet(0x08, OSTickISR);                           /* Install uC/OS-II's clock tick ISR        */
+//     PC_SetTickRate(OS_TICKS_PER_SEC);                      /* Reprogram tick rate                      */
+//     OS_EXIT_CRITICAL();
 
-    // OSStatInit();                                          /* Initialize uC/OS-II's statistics         */
+//     // OSStatInit();                                          /* Initialize uC/OS-II's statistics         */
 
-    TaskStartCreateTasks();                                /* Create all the application tasks         */
+//     TaskStartCreateTasks();                                /* Create all the application tasks         */
 
-    GlobalStartTime = OSTimeGet();                    /* Update the global task start time         */
-    for (;;) {
-        OSTimeDlyHMSM(0, 0, 2, 0);                         /* Wait one second                          */
+//     GlobalStartTime = OSTimeGet();                    /* Update the global task start time         */
+//     for (;;) {
+//         OSTimeDlyHMSM(0, 0, 2, 0);                         /* Wait one second                          */
         
-        if (PC_GetKey(&key) == TRUE) {                     /* See if key has been pressed              */
-            if (key == 0x1B) {                             /* Yes, see if it's the ESCAPE key          */
-                PC_DOSReturn();                            /* Return to DOS                            */
-            }
-        }
-    }
-}
+//         if (PC_GetKey(&key) == TRUE) {                     /* See if key has been pressed              */
+//             if (key == 0x1B) {                             /* Yes, see if it's the ESCAPE key          */
+//                 PC_DOSReturn();                            /* Return to DOS                            */
+//             }
+//         }
+//     }
+// }
 
 /* To display the output */
 static  void  TaskStartDisp (void)
@@ -180,14 +180,29 @@ void  PeriodicTask (void *pdata)
 {
     int end, toDelay;
     int c = ((int *) pdata)[0]; /* The first parameter in pdata*/
-    int p = ((int *) pdata)[1];
+    INT16S     key;
 
+    pdata = pdata;                                         /* Prevent compiler warning                 */
+    
+    /* Let one task to set uC/OS-II clock */
+    if (OSTCBCur->OSTCBPrio == 1) {
+        OS_ENTER_CRITICAL();
+        PC_VectSet(0x08, OSTickISR);                           /* Install uC/OS-II's clock tick ISR        */
+        PC_SetTickRate(OS_TICKS_PER_SEC);                      /* Reprogram tick rate                      */
+        OS_EXIT_CRITICAL();
+    }
+
+    /* Update the global start time */
     OSTCBCur->start = GlobalStartTime;
 
     while (1) {
+        if (PC_GetKey(&key) == TRUE) {                     /* See if key has been pressed              */
+            if (key == 0x1B) {                             /* Yes, see if it's the ESCAPE key          */
+                PC_DOSReturn();                            /* Return to DOS                            */
+            }
+        }
         while (OSTCBCur->compTime > 0) {
-            /* The tasks in Lab2 won't miss the deadline. */
-            /* Check the deadline */
+            /* Check the deadline. (The tasks in Lab2 won't miss the deadline.) */
             if ((OSTimeGet() > (OSTCBCur->start + OSTCBCur->period)) && RowCount < DISPLAY_HIGH) {
                 OutputBuffer[RowCount][0] = (OSTCBCur->start + OSTCBCur->period);
                 OutputBuffer[RowCount][1] = DEADLINE_EVENT;
