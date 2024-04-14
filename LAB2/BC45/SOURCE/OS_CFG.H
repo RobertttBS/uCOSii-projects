@@ -108,7 +108,7 @@
 #define OS_SCHED_LOCK_EN          1    /*     Include code for OSSchedLock() and OSSchedUnlock()       */
 
 
-#define OS_TICKS_PER_SEC        100    /* Set the number of ticks in one second                        */
+#define OS_TICKS_PER_SEC         10    /* Set the number of ticks in one second                        */
 
 
 typedef INT16U             OS_FLAGS;   /* Date type for event flag bits (8, 16 or 32 bits)             */

@@ -2,3 +2,24 @@ MAKE Version 3.6  Copyright (c) 1992 Borland International
 
 Available memory 15346224 bytes
 
+	COPY ..\SOURCE\TEST.C TEST.C
+ TEST.C
+   1 File(s) copied.
+	C:\BC45\BIN\BCC -c -ml -1 -G -O -Ogemvlbpi -Z -d -n..\obj -k- -v -vi- -wpro -IC:\BC45\INCLUDE -LC:\BC45\LIB TEST.C
+Borland C++  Version 3.1 Copyright (c) 1992 Borland International
+test.c:
+Warning test.c 211: 'p' is assigned a value that is never used in function PeriodicTask
+
+	Available memory 4091064
+	COPY ..\SOURCE\TEST.LNK
+ TEST.LNK
+   1 File(s) copied.
+	C:\BC45\BIN\TLINK  @TEST.LNK
+Turbo Link  Version 5.1 Copyright (c) 1992 Borland International
+	COPY ..\OBJ\TEST.EXE ..\TEST\TEST.EXE
+ TEST.EXE
+   1 File(s) copied.
+	COPY ..\OBJ\TEST.MAP ..\TEST\TEST.MAP
+ TEST.MAP
+   1 File(s) copied.
+	DEL TEST.MAK

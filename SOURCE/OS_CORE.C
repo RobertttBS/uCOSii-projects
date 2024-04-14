@@ -227,6 +227,7 @@ void  OSIntExit (void)
                     OutputBuffer[RowCount][3] = (INT16U) OSPrioHighRdy;
                     RowCount++;
                 }
+                // printf("%d Preempt %d %d\n", OSTime, OSPrioCur, OSPrioHighRdy);
 #endif
 
                 OSIntCtxSw();                              /* Perform interrupt level ctx switch       */
@@ -338,13 +339,14 @@ void  OSStart (void)
 
 
     if (OSRunning == FALSE) {
-        if (RowCount < DISPLAY_HIGH) {
-            OutputBuffer[RowCount][0] = (INT16U) 13;
-            OutputBuffer[RowCount][1] = 5;
-            OutputBuffer[RowCount][2] = (INT16U) OSPrioCur;
-            OutputBuffer[RowCount][3] = (INT16U) OSPrioHighRdy;
-            RowCount++;
-        }
+        // if (RowCount < DISPLAY_HIGH) {
+        //     OutputBuffer[RowCount][0] = (INT16U) 13;
+        //     OutputBuffer[RowCount][1] = 5;
+        //     OutputBuffer[RowCount][2] = (INT16U) OSPrioCur;
+        //     OutputBuffer[RowCount][3] = (INT16U) OSPrioHighRdy;
+        //     RowCount++;
+        // }
+        printf("OSStart\n");
         y             = OSUnMapTbl[OSRdyGrp];        /* Find highest priority's task priority number   */
         x             = OSUnMapTbl[OSRdyTbl[y]];
         OSPrioHighRdy = (INT8U)((y << 3) + x);
@@ -962,6 +964,7 @@ void  OS_Sched (void)
                 OutputBuffer[RowCount][3] = (INT16U) OSPrioHighRdy;
                 RowCount++;
             }
+            // printf("%d Complete %d %d\n", OSTime, OSPrioCur, OSPrioHighRdy);
 #endif
 
             OS_TASK_SW();                              /* Perform a context switch                     */
