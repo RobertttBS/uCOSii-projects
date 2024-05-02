@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "OS_CORE.C": "cpp",
+        "OS_TASK.C": "cpp"
+    }
+}

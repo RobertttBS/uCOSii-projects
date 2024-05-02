@@ -1,0 +1,17 @@
+MAKE Version 3.6  Copyright (c) 1992 Borland International
+
+Available memory 15346224 bytes
+
+	COPY ..\SOURCE\TEST.C TEST.C
+ TEST.C
+   1 File(s) copied.
+	C:\BC45\BIN\BCC -c -ml -1 -G -O -Ogemvlbpi -Z -d -n..\obj -k- -v -vi- -wpro -IC:\BC45\INCLUDE -LC:\BC45\LIB TEST.C
+Borland C++  Version 3.1 Copyright (c) 1992 Borland International
+test.c:
+Error test.c 123: Undefined symbol 'PeriodicTask' in function TaskStartCreateTasks
+Error test.c 123: Undefined symbol 'TaskSet2' in function TaskStartCreateTasks
+*** 2 errors in Compile ***
+
+	Available memory 4095928
+
+** error 1 ** deleting ..\obj\test.obj

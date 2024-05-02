@@ -18,7 +18,7 @@
 #endif
 
 #define  LAB1
-#define  LAB2
+// #define  LAB2
 
 
 #ifdef  LAB1
@@ -26,7 +26,8 @@
 #define  COMPLETE_EVENT                  1
 #define  PREEMPT_EVENT                   2
 
-INT16U        OutputBuffer[DISPLAY_HIGH][4];       /* User message OutputBuffer */
+// INT16U        OutputBuffer[DISPLAY_HIGH][4];       /* User message OutputBuffer */
+char          MessageBuffer[DISPLAY_HIGH][80] = {0};     /* User message MessageBuffer */
 unsigned int  RowCount = 0;                        /* ISR use RowCount to store message to OutputBuffer */
 #endif
 
@@ -221,10 +222,11 @@ void  OSIntExit (void)
 
 #ifdef  LAB1
                 if (RowCount < DISPLAY_HIGH) {
-                    OutputBuffer[RowCount][0] = (INT16U) OSTime;
-                    OutputBuffer[RowCount][1] = PREEMPT_EVENT;
-                    OutputBuffer[RowCount][2] = (INT16U) OSPrioCur;
-                    OutputBuffer[RowCount][3] = (INT16U) OSPrioHighRdy;
+                    // OutputBuffer[RowCount][0] = (INT16U) OSTime;
+                    // OutputBuffer[RowCount][1] = PREEMPT_EVENT;
+                    // OutputBuffer[RowCount][2] = (INT16U) OSPrioCur;
+                    // OutputBuffer[RowCount][3] = (INT16U) OSPrioHighRdy;
+                    sprintf(MessageBuffer[RowCount], "%3d Preempt %3d %3d\n", (INT16U) OSTime, (INT16U) OSPrioCur, (INT16U) OSPrioHighRdy);
                     RowCount++;
                 }
                 // printf("%d Preempt %d %d\n", OSTime, OSPrioCur, OSPrioHighRdy);
@@ -347,12 +349,13 @@ void  OSStart (void)
         OSTCBCur      = OSTCBHighRdy;
 #ifdef  LAB1
         if (RowCount < DISPLAY_HIGH) {
-            OutputBuffer[RowCount][0] = (INT16U) 0;
-            OutputBuffer[RowCount][1] = COMPLETE_EVENT;
-            OutputBuffer[RowCount][2] = (INT16U) 0;
-            OutputBuffer[RowCount][3] = (INT16U) OSPrioHighRdy;
+            // OutputBuffer[RowCount][0] = (INT16U) 0;
+            // OutputBuffer[RowCount][1] = COMPLETE_EVENT;
+            // OutputBuffer[RowCount][2] = (INT16U) 0;
+            // OutputBuffer[RowCount][3] = (INT16U) OSPrioHighRdy;
+            sprintf(MessageBuffer[RowCount], "%3d Complete %3d %3d\n", 0, 0, (INT16U) OSPrioHighRdy);
             RowCount++;
-            printf("OSStart\n");
+            // printf("OSStart\n");
         }
 #endif
         OSStartHighRdy();                            /* Execute target specific code to start task     */
@@ -960,10 +963,11 @@ void  OS_Sched (void)
 
 #ifdef  LAB1
             if (RowCount < DISPLAY_HIGH) {
-                OutputBuffer[RowCount][0] = (INT16U) OSTime;
-                OutputBuffer[RowCount][1] = COMPLETE_EVENT;
-                OutputBuffer[RowCount][2] = (INT16U) OSPrioCur;
-                OutputBuffer[RowCount][3] = (INT16U) OSPrioHighRdy;
+                // OutputBuffer[RowCount][0] = (INT16U) OSTime;
+                // OutputBuffer[RowCount][1] = COMPLETE_EVENT;
+                // OutputBuffer[RowCount][2] = (INT16U) OSPrioCur;
+                // OutputBuffer[RowCount][3] = (INT16U) OSPrioHighRdy;
+                sprintf(MessageBuffer[RowCount], "%3d Complete %3d %3d\n", (INT16U) OSTime, (INT16U) OSPrioCur, (INT16U) OSPrioHighRdy);
                 RowCount++;
             }
             // printf("%d Complete %d %d\n", OSTime, OSPrioCur, OSPrioHighRdy);

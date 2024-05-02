@@ -21,7 +21,7 @@
 #define  TASK_STK_SIZE                 512       /* Size of each task's stacks (# of WORDs)            */
 #define  N_TASKS                         2       /* Number of identical tasks                          */
 
-// #define  TASKSET1_SELECT
+#define  TASKSET1_SELECT
 
 /*
 *********************************************************************************************************
@@ -35,10 +35,10 @@ char          TaskData[N_TASKS];                      /* Parameters to pass to e
 OS_EVENT     *RandomSem;
 
 INT32U        GlobalStartTime;                                /* Global tasks start time               */
-unsigned int  TaskSet1[2][2] = {{1, 3}, {3, 5}};              /* Task set 1 */
-unsigned int  TaskSet2[3][2] = {{1, 4}, {2, 5}, {2, 10}};      /* Task set 2 (Lab 2) */
-// unsigned int  TaskSet1[2][2] = {{1, 3}, {3, 6}};              /* Task set 1 (Lab 1) */
-// unsigned int  TaskSet2[3][2] = {{1, 3}, {3, 6}, {4, 9}};      /* Task set 2 (Lab 1) */
+// unsigned int  TaskSet1[2][2] = {{1, 3}, {3, 5}};              /* Task set 1 */
+// unsigned int  TaskSet2[3][2] = {{1, 4}, {2, 5}, {2, 10}};      /* Task set 2 (Lab 2) */
+unsigned int  TaskSet1[2][2] = {{1, 3}, {3, 6}};              /* Task set 1 (Lab 1) */
+unsigned int  TaskSet2[3][2] = {{1, 3}, {3, 6}, {4, 9}};      /* Task set 2 (Lab 1) */
 
 #define  DISPLAY_HIGH                   24
 #define  COMPLETE_EVENT                  1
@@ -46,7 +46,7 @@ unsigned int  TaskSet2[3][2] = {{1, 4}, {2, 5}, {2, 10}};      /* Task set 2 (La
 #define  DEADLINE_EVENT                  3
 
 /* Defined for ISR to print message */
-extern INT16U         OutputBuffer[DISPLAY_HIGH][4];                /* User message OutputBuffer */
+extern char           MessageBuffer[DISPLAY_HIGH][80];              /* User message MessageBuffer */
 extern unsigned int   RowCount;                               /* ISR use RowCount to store message to OutputBuffer*/
 
 /*
@@ -85,45 +85,6 @@ void  main (void)
     OSStart();                                             /* Start multitasking                       */
 }
 
-/*
-*********************************************************************************************************
-*                                              STARTUP TASK
-*********************************************************************************************************
-*/
-// void  TaskStart (void *pdata)
-// {
-// #if OS_CRITICAL_METHOD == 3                                /* Allocate storage for CPU status register */
-//     OS_CPU_SR  cpu_sr;
-// #endif
-//     char       s[100];
-//     INT16S     key;
-
-
-//     pdata = pdata;                                         /* Prevent compiler warning                 */
-
-//     // TaskStartDispInit();                                   /* Initialize the display                   */
-
-//     OS_ENTER_CRITICAL();
-//     PC_VectSet(0x08, OSTickISR);                           /* Install uC/OS-II's clock tick ISR        */
-//     PC_SetTickRate(OS_TICKS_PER_SEC);                      /* Reprogram tick rate                      */
-//     OS_EXIT_CRITICAL();
-
-//     // OSStatInit();                                          /* Initialize uC/OS-II's statistics         */
-
-//     TaskStartCreateTasks();                                /* Create all the application tasks         */
-
-//     GlobalStartTime = OSTimeGet();                    /* Update the global task start time         */
-//     for (;;) {
-//         OSTimeDlyHMSM(0, 0, 2, 0);                         /* Wait one second                          */
-        
-//         if (PC_GetKey(&key) == TRUE) {                     /* See if key has been pressed              */
-//             if (key == 0x1B) {                             /* Yes, see if it's the ESCAPE key          */
-//                 PC_DOSReturn();                            /* Return to DOS                            */
-//             }
-//         }
-//     }
-// }
-
 /* To display the output */
 static  void  TaskStartDisp (void)
 {
@@ -131,16 +92,7 @@ static  void  TaskStartDisp (void)
     static unsigned int i;
 
     for (i = 0; i < DISPLAY_HIGH; i++) {
-        if (OutputBuffer[i][1] == COMPLETE_EVENT)
-            sprintf(s, "%3d: Complete   %3d %3d", OutputBuffer[i][0] - (INT16U)GlobalStartTime, OutputBuffer[i][2], OutputBuffer[i][3]);
-        else if (OutputBuffer[i][1] == PREEMPT_EVENT)
-            sprintf(s, "%3d: Preempt    %3d %3d", OutputBuffer[i][0] - (INT16U)GlobalStartTime, OutputBuffer[i][2], OutputBuffer[i][3]);
-        else if (OutputBuffer[i][1] == DEADLINE_EVENT)
-            sprintf(s, "%3d: Deadline   %3d %3d", OutputBuffer[i][0] - (INT16U)GlobalStartTime, OutputBuffer[i][2], OutputBuffer[i][3]);
-        else
-            sprintf(s, "%3d: Unknown    %3d %3d", OutputBuffer[i][0] - (INT16U)GlobalStartTime, OutputBuffer[i][2], OutputBuffer[i][3]);
-        
-        printf("%s\n", s);
+        printf("%s", MessageBuffer[i]);
     }
 }
 
@@ -204,10 +156,11 @@ void  PeriodicTask (void *pdata)
         while (OSTCBCur->compTime > 0) {
             /* Check the deadline. (The tasks in Lab2 won't miss the deadline.) */
             if ((OSTimeGet() > (OSTCBCur->start + OSTCBCur->period)) && RowCount < DISPLAY_HIGH) {
-                OutputBuffer[RowCount][0] = (OSTCBCur->start + OSTCBCur->period);
-                OutputBuffer[RowCount][1] = DEADLINE_EVENT;
-                OutputBuffer[RowCount][2] = (INT16U) OSPrioCur;
-                OutputBuffer[RowCount][3] = (INT16U) OSPrioCur;
+                // OutputBuffer[RowCount][0] = (OSTCBCur->start + OSTCBCur->period);
+                // OutputBuffer[RowCount][1] = DEADLINE_EVENT;
+                // OutputBuffer[RowCount][2] = (INT16U) OSPrioCur;
+                // OutputBuffer[RowCount][3] = (INT16U) OSPrioCur;
+                sprintf(MessageBuffer[RowCount], "%3d Deadline %3d %3d\n", (OSTCBCur->start + OSTCBCur->period), OSPrioCur, OSPrioCur);
                 RowCount++;
             }
         }
