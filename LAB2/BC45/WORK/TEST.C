@@ -32,7 +32,6 @@
 OS_STK        TaskStk[N_TASKS][TASK_STK_SIZE];        /* Tasks stacks                                  */
 OS_STK        TaskStartStk[TASK_STK_SIZE];
 char          TaskData[N_TASKS];                      /* Parameters to pass to each task               */
-OS_EVENT     *RandomSem;
 
 INT32U        GlobalStartTime;                                /* Global tasks start time               */
 // unsigned int  TaskSet1[2][2] = {{1, 3}, {3, 5}};              /* Task set 1 */
@@ -77,7 +76,7 @@ void  main (void)
     PC_DOSSaveReturn();                                    /* Save environment to return to DOS        */
     PC_VectSet(uCOS, OSCtxSw);                             /* Install uC/OS-II's context switch vector */
 
-    RandomSem   = OSSemCreate(1);                          /* Random number semaphore                  */
+    PC_ElapsedInit();                                      /* Initialized elapsed time measurement     */
 
     // OSTaskCreate(TaskStart, (void *)0, &TaskStartStk[TASK_STK_SIZE - 1], 0);
     TaskStartCreateTasks();

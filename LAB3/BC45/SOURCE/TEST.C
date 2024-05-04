@@ -19,9 +19,9 @@
 */
 
 #define  TASK_STK_SIZE                 512       /* Size of each task's stacks (# of WORDs)            */
-#define  N_TASKS                         2       /* Number of identical tasks                          */
+#define  N_TASKS                         3       /* Number of identical tasks                          */
 
-#define  TASKSET1_SELECT
+// #define  TASKSET1_SELECT
 
 /*
 *********************************************************************************************************
@@ -35,20 +35,16 @@ char          TaskData[N_TASKS];                      /* Parameters to pass to e
 OS_EVENT     *RandomSem;
 
 INT32U        GlobalStartTime;                                /* Global tasks start time               */
-// unsigned int  TaskSet1[2][2] = {{1, 3}, {3, 6}};              /* Task set 1 (Lab 1) */
-// unsigned int  TaskSet2[3][2] = {{1, 3}, {3, 6}, {4, 9}};      /* Task set 2 (Lab 1) */
-// unsigned int  TaskSet1[2][2] = {{1, 3}, {3, 5}};              /* Task set 1 (Lab 2) */
-// unsigned int  TaskSet2[3][2] = {{1, 4}, {2, 5}, {2, 10}};     /* Task set 2 (Lab 2) */
 
 #define  DISPLAY_HIGH                   24
-#define  COMPLETE_EVENT                  1
-#define  PREEMPT_EVENT                   2
-#define  DEADLINE_EVENT                  3
 
 /* Defined for ISR to print message */
-extern INT16U         OutputBuffer[DISPLAY_HIGH][4];                /* User message OutputBuffer */
 extern char           MessageBuffer[DISPLAY_HIGH][80];              /* User message MessageBuffer */
 extern unsigned int   RowCount;                               /* ISR use RowCount to store message to OutputBuffer*/
+
+OS_EVENT *R1;
+OS_EVENT *R2;
+
 
 /*
 *********************************************************************************************************
@@ -71,16 +67,19 @@ static  void  TaskStartDisp(void);
 
 void  main (void)
 {
+    INT8U err;
+
     PC_DispClrScr(DISP_FGND_WHITE + DISP_BGND_BLACK);      /* Clear the screen                         */
-
     OSInit();                                              /* Initialize uC/OS-II                      */
-
     PC_DOSSaveReturn();                                    /* Save environment to return to DOS        */
     PC_VectSet(uCOS, OSCtxSw);                             /* Install uC/OS-II's context switch vector */
 
-    RandomSem   = OSSemCreate(1);                          /* Random number semaphore                  */
+    PC_ElapsedInit();                                      /* Initialized elapsed time measurement.    */
 
-    // OSTaskCreate(TaskStart, (void *)0, &TaskStartStk[TASK_STK_SIZE - 1], 0);
+    /* Create resource. */
+    R1 = OSMutexCreate(1, &err);
+    R2 = OSMutexCreate(2, &err);
+
     TaskStartCreateTasks();
 
     OSStart();                                             /* Start multitasking                       */
@@ -93,16 +92,7 @@ static  void  TaskStartDisp (void)
     static unsigned int i;
 
     for (i = 0; i < DISPLAY_HIGH; i++) {
-        // if (OutputBuffer[i][1] == COMPLETE_EVENT)
-        //     sprintf(s, "%3d: Complete   %3d %3d", OutputBuffer[i][0] - (INT16U)GlobalStartTime, OutputBuffer[i][2], OutputBuffer[i][3]);
-        // else if (OutputBuffer[i][1] == PREEMPT_EVENT)
-        //     sprintf(s, "%3d: Preempt    %3d %3d", OutputBuffer[i][0] - (INT16U)GlobalStartTime, OutputBuffer[i][2], OutputBuffer[i][3]);
-        // else if (OutputBuffer[i][1] == DEADLINE_EVENT)
-        //     sprintf(s, "%3d: Deadline   %3d %3d", OutputBuffer[i][0] - (INT16U)GlobalStartTime, OutputBuffer[i][2], OutputBuffer[i][3]);
-        // else
-        //     sprintf(s, "%3d: Unknown    %3d %3d", OutputBuffer[i][0] - (INT16U)GlobalStartTime, OutputBuffer[i][2], OutputBuffer[i][3]);
-        
-        printf("%s\n", MessageBuffer[i]);
+        printf("%s", MessageBuffer[i]);
     }
 }
 
@@ -116,16 +106,12 @@ static  void  TaskStartDisp (void)
 static  void  TaskStartCreateTasks (void)
 {
 #ifdef TASKSET1_SELECT
-    OSTaskCreate(Task1, (void *)&TaskSet2[i], &TaskStk[i][TASK_STK_SIZE - 1], i + 1);
-    OSTaskCreate(Task2, (void *)&TaskSet2[i], &TaskStk[i][TASK_STK_SIZE - 1], i + 1);
-    OSTaskCreate(Task3, (void *)&TaskSet2[i], &TaskStk[i][TASK_STK_SIZE - 1], i + 1);
+    OSTaskCreate(Task1, (void *)0, &TaskStk[0][TASK_STK_SIZE - 1], (INT8U) 3);
+    OSTaskCreate(Task2, (void *)0, &TaskStk[1][TASK_STK_SIZE - 1], (INT8U) 4);
+    OSTaskCreate(Task3, (void *)0, &TaskStk[2][TASK_STK_SIZE - 1], (INT8U) 5);
 #else
-    INT8U  i;
-    INT8U  nr_task = 2;
-
-    for (i = 0; i < nr_task; i++) {                        /* Create N_TASKS identical tasks           */
-        OSTaskCreate(PeriodicTask, (void *)&TaskSet1[i], &TaskStk[i][TASK_STK_SIZE - 1], i + 1);
-    }
+    OSTaskCreate(Task1, (void *)0, &TaskStk[0][TASK_STK_SIZE - 1], (INT8U) 3);
+    OSTaskCreate(Task2, (void *)0, &TaskStk[1][TASK_STK_SIZE - 1], (INT8U) 4);
 #endif
 }
 
@@ -139,9 +125,8 @@ static  void  TaskStartCreateTasks (void)
 
 void  Task1 (void *pdata)
 {
-    int end, toDelay;
-    int c = ((int *) pdata)[0]; /* The first parameter in pdata*/
     INT16S     key;
+    INT8U      error;
 
     pdata = pdata;                                         /* Prevent compiler warning                 */
     
@@ -151,82 +136,92 @@ void  Task1 (void *pdata)
     PC_SetTickRate(OS_TICKS_PER_SEC);                      /* Reprogram tick rate                      */
     OS_EXIT_CRITICAL();
 
-    /* Update the global start time */
-    OSTCBCur->start = GlobalStartTime;
-
     while (1) {
+        /* Delay 8 ticks at first. */
+        OSTimeDly(8);
+
+        /* Compute 2 ticks. */
+        OSTCBCur->compTime = 2;
+        while (OSTCBCur->compTime > 0);
+
+        /* Acquire R1 for 2 ticks */
+        OSMutexPend(R1, 0, &error);
+        OSTCBCur->compTime = 2;
+        while (OSTCBCur->compTime > 0);
+
+        /* Acquire R2 for 2 ticks */
+        OSMutexPend(R2, 0, &error);
+        OSTCBCur->compTime = 2;
+        while (OSTCBCur->compTime > 0);
+        OSMutexPost(R2);
+        OSMutexPost(R1);
+
         if (PC_GetKey(&key) == TRUE) {                     /* See if key has been pressed              */
             if (key == 0x1B) {                             /* Yes, see if it's the ESCAPE key          */
                 PC_DOSReturn();                            /* Return to DOS                            */
             }
         }
-        while (OSTCBCur->compTime > 0);
-
-        /* Let Task1 to print message */
-        TaskStartDisp();
-
-        end = OSTimeGet();
-        toDelay = OSTCBCur->period - (end - OSTCBCur->start);
-        OSTCBCur->start += OSTCBCur->period;
-        OSTCBCur->compTime = c;
  
-        OSTimeDly(toDelay);
+        OSTimeDly(1000);
     }
 }
 
 void  Task2 (void *pdata)
 {
-    int end, toDelay;
-    int c = ((int *) pdata)[0]; /* The first parameter in pdata*/
     INT16S     key;
+    INT8U      error;
 
     pdata = pdata;                                         /* Prevent compiler warning                 */
 
-    /* Update the global start time */
-    OSTCBCur->start = GlobalStartTime;
-
     while (1) {
+        /* Delay 4 ticks at first. */
+        OSTimeDly(4);
+
+        /* Compute 2 ticks */
+        OSTCBCur->compTime = 2;
+        while (OSTCBCur->compTime > 0);
+
+        /* Acquire R2 for 4 ticks */
+        OSMutexPend(R2, 0, &error);
+        OSTCBCur->compTime = 4;
+        while (OSTCBCur->compTime > 0);
+        OSMutexPost(R2);
+
         if (PC_GetKey(&key) == TRUE) {                     /* See if key has been pressed              */
             if (key == 0x1B) {                             /* Yes, see if it's the ESCAPE key          */
                 PC_DOSReturn();                            /* Return to DOS                            */
             }
         }
-        while (OSTCBCur->compTime > 0);
-
-        end = OSTimeGet();
-        toDelay = OSTCBCur->period - (end - OSTCBCur->start);
-        OSTCBCur->start += OSTCBCur->period;
-        OSTCBCur->compTime = c;
  
-        OSTimeDly(toDelay);
+        OSTimeDly(1000);
     }
 }
 
 void  Task3 (void *pdata)
 {
-    int end, toDelay;
-    int c = ((int *) pdata)[0]; /* The first parameter in pdata*/
     INT16S     key;
+    INT8U      error;
 
     pdata = pdata;                                         /* Prevent compiler warning                 */
 
-    /* Update the global start time */
-    OSTCBCur->start = GlobalStartTime;
-
     while (1) {
+        /* Compute 2 ticks */
+        OSTCBCur->compTime = 2;
+        while (OSTCBCur->compTime > 0);
+
+        /* Acquire R1 for 7 ticks */
+        OSMutexPend(R1, 0, &error);
+        OSTCBCur->compTime = 7;
+        while (OSTCBCur->compTime > 0);
+        OSMutexPost(R1);
+
         if (PC_GetKey(&key) == TRUE) {                     /* See if key has been pressed              */
             if (key == 0x1B) {                             /* Yes, see if it's the ESCAPE key          */
                 PC_DOSReturn();                            /* Return to DOS                            */
             }
         }
-        while (OSTCBCur->compTime > 0);
-
-        end = OSTimeGet();
-        toDelay = OSTCBCur->period - (end - OSTCBCur->start);
-        OSTCBCur->start += OSTCBCur->period;
-        OSTCBCur->compTime = c;
  
-        OSTimeDly(toDelay);
+        OSTimeDly(1000);
     }
 }
 
@@ -234,50 +229,84 @@ void  Task3 (void *pdata)
 
 void  Task1 (void *pdata)
 {
-    int end, toDelay;
-    int c = ((int *) pdata)[0]; /* The first parameter in pdata*/
     INT16S     key;
+    INT8U      error;
 
     pdata = pdata;                                         /* Prevent compiler warning                 */
     
     /* Let one task to set uC/OS-II clock */
-    if (OSTCBCur->OSTCBPrio == 1) {
-        OS_ENTER_CRITICAL();
-        PC_VectSet(0x08, OSTickISR);                           /* Install uC/OS-II's clock tick ISR        */
-        PC_SetTickRate(OS_TICKS_PER_SEC);                      /* Reprogram tick rate                      */
-        OS_EXIT_CRITICAL();
-    }
-
-    /* Update the global start time */
-    OSTCBCur->start = GlobalStartTime;
+    OS_ENTER_CRITICAL();
+    PC_VectSet(0x08, OSTickISR);                           /* Install uC/OS-II's clock tick ISR        */
+    PC_SetTickRate(OS_TICKS_PER_SEC);                      /* Reprogram tick rate                      */
+    OS_EXIT_CRITICAL();
 
     while (1) {
+        /* Delay 5 ticks */
+        OSTimeDly(5);
+
+        /* Compute 2 ticks */
+        OSTCBCur->compTime = 2;
+        while (OSTCBCur->compTime > 0);
+
+        /* Get R2 for 3 ticks */
+        OSMutexPend(R2, 0, &error);
+        OSTCBCur->compTime = 3;
+        while (OSTCBCur->compTime > 0);
+        
+        /* Get R1 for 3 ticks */
+        OSMutexPend(R1, 0, &error);
+        OSTCBCur->compTime = 3;
+        while (OSTCBCur->compTime > 0);
+        OSMutexPost(R1);
+
+        OSTCBCur->compTime = 3;
+        while (OSTCBCur->compTime > 0);
+        OSMutexPost(R2);
+
         if (PC_GetKey(&key) == TRUE) {                     /* See if key has been pressed              */
             if (key == 0x1B) {                             /* Yes, see if it's the ESCAPE key          */
                 PC_DOSReturn();                            /* Return to DOS                            */
             }
         }
-        while (OSTCBCur->compTime > 0) {
-            /* Check the deadline. (The tasks in Lab2 won't miss the deadline.) */
-            if ((OSTimeGet() > (OSTCBCur->start + OSTCBCur->period)) && RowCount < DISPLAY_HIGH) {
-                OutputBuffer[RowCount][0] = (OSTCBCur->start + OSTCBCur->period);
-                OutputBuffer[RowCount][1] = DEADLINE_EVENT;
-                OutputBuffer[RowCount][2] = (INT16U) OSPrioCur;
-                OutputBuffer[RowCount][3] = (INT16U) OSPrioCur;
-                RowCount++;
+ 
+        OSTimeDly(1000);
+    }
+}
+
+void  Task2 (void *pdata)
+{
+    INT16S     key;
+    INT8U      error;
+
+    pdata = pdata;                                         /* Prevent compiler warning                 */
+
+    while (1) {
+        /* Compute for 2 ticks */
+        OSTCBCur->compTime = 2;
+        while (OSTCBCur->compTime > 0);
+
+        /* Get R1 for 6 ticks */
+        OSMutexPend(R1, 0, &error);
+        OSTCBCur->compTime = 6;
+        while (OSTCBCur->compTime > 0);
+
+        /* Get R2 for 2 ticks */
+        OSMutexPend(R2, 0, &error);
+        OSTCBCur->compTime = 2;
+        while (OSTCBCur->compTime > 0);
+        OSMutexPost(R2);
+
+        OSTCBCur->compTime = 2;
+        while (OSTCBCur->compTime > 0);
+        OSMutexPost(R1);
+
+        if (PC_GetKey(&key) == TRUE) {                     /* See if key has been pressed              */
+            if (key == 0x1B) {                             /* Yes, see if it's the ESCAPE key          */
+                PC_DOSReturn();                            /* Return to DOS                            */
             }
         }
-
-        /* Let one task to print message */
-        if (OSTCBCur->OSTCBPrio == 1)
-            TaskStartDisp();
-
-        end = OSTimeGet();
-        toDelay = OSTCBCur->period - (end - OSTCBCur->start);
-        OSTCBCur->start += OSTCBCur->period;
-        OSTCBCur->compTime = c;
  
-        OSTimeDly(toDelay);
+        OSTimeDly(1000);
     }
 }
 
